@@ -1,0 +1,14 @@
+pytesseract==0.3.10
+pdf2image==1.17.0
+pdfplumber==0.11.10
+pillow>=11.0.0
+openpyxl==3.1.5
+reportlab==4.2.5
+pandas==3.1.0
+tzdata==2026.6
+numpy>=2.0.2
+python-dateutil>=2.9.0
+et-xmlfile==2.0.0
+six>=1.5
+pytest>=9.2.0
+pluggy>=1.7.0
