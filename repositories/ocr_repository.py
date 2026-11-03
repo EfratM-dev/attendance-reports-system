@@ -4,23 +4,23 @@ from typing import Optional
 
 
 class PDFTextExtractorRepository:
-    """מחלקת אחזור האחראית על חילוץ טקסט גולמי מקבצי PDF סרוקים בעברית באמצעות OCR."""
+    """Repository class responsible for extracting raw text from scanned PDF files in Hebrew using OCR."""
 
     @staticmethod
     def extract_text_from_pdf(pdf_path: str) -> Optional[str]:
         """
-        מקבלת נתיב של קובץ PDF סרוק בעברית,
-        ממירה כל עמוד לתמונה ומחלצת ממנו את הטקסט בעזרת OCR עם התאמה לשפה העברית.
+        Receives a path to a scanned Hebrew PDF file,
+        converts each page to an image and extracts text using OCR with Hebrew language support.
         """
         try:
-            # המרת עמודי ال-PDF לתמונות ברזולוציה גבוהה לשיפור דיוק ה-OCR
+            # Convert PDF pages to high-resolution images to improve OCR accuracy
             images = convert_from_path(pdf_path, dpi=300)
             full_text = []
 
-            # הגדרות עבור Tesseract לעבודה עם עברית (Page Segmentation Mode 6 - בלוק אחיד של טקסט)
+            # Tesseract configuration for Hebrew (Page Segmentation Mode 6 - Uniform block of text)
             custom_config = r'--oem 3 --psm 6'
 
-            # מעבר על כל עמוד וחילוץ הטקסט בעברית ובאנגלית
+            # Iterate through pages and extract Hebrew and English text
             for image in images:
                 page_text = pytesseract.image_to_string(
                     image,

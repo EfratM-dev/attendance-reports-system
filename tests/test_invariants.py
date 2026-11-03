@@ -21,16 +21,16 @@ def test_randomize_rows_type_a_invariants():
     updated_rows = AttendanceMockService.randomize_rows_type_a([original_row])
     row = updated_rows[0]
 
-    # אינווריאנט 1: שעת יציאה מאוחרת משעת כניסה
+    # Invariant 1: Exit time must be later than entry time
     entry_h, entry_m = map(int, row.entry_time.split(':'))
     exit_h, exit_m = map(int, row.exit_time.split(':'))
     assert (exit_h * 60 + exit_m) > (entry_h * 60 + entry_m)
 
-    # אינווריאנט 2: שימור יום השבוע והמקום מקובץ המקור
+    # Invariant 2: Preserve day of week and location from source file
     assert row.day_of_week == "יום ראשון"
     assert row.location == "גליליון"
 
-    # אינווריאנט 3: תקינות סך השעות
+    # Invariant 3: Total hours validity
     assert float(row.total_hours) >= 0.0
 
 
@@ -47,10 +47,10 @@ def test_randomize_rows_type_b_invariants():
     updated_rows = AttendanceMockService.randomize_rows_type_b([original_row])
     row = updated_rows[0]
 
-    # אינווריאנט 1: שעת יציאה מאוחרת משעת כניסה
+    # Invariant 1: Exit time must be later than entry time
     entry_h, entry_m = map(int, row.entry_time.split(':'))
     exit_h, exit_m = map(int, row.exit_time.split(':'))
     assert (exit_h * 60 + exit_m) > (entry_h * 60 + entry_m)
 
-    # אינווריאנט 2: שימור ההערות מקובץ המקור
+    # Invariant 2: Preserve notes from source file
     assert row.notes == "ערב חג"

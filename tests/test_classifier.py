@@ -3,9 +3,8 @@ from services.report_classifier_service import ReportClassifierService
 
 
 def test_classifier_type_a():
-    # שימוש ישיר בתוص השורה המדויק שמוגדר במודל/קלסיפייר שלך לסוג א'
+    # Test Type A detection matching model classifier definition
     raw_text = "נ.ע. הנשר"
-    # לחלופין, אם הקוד שלך מזהה לפי כותרת עמודה, נזין אותה:
     assert isinstance(ReportClassifierService.is_match_type_a(raw_text), bool)
 
 

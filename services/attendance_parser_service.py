@@ -1,18 +1,19 @@
 from abc import ABC, abstractmethod
 import re
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 from models.attendance_row import AttendanceRowTypeA, AttendanceRowTypeB
 
 
 class BaseParser(ABC):
     """
-    מחלקת בסיס אבסטרקטית המיישמת Template Method לניתוח דו"ח נוכחות.
-    התהליך המרכזי משותף לכל סוגי הדוחות, בעוד שפרטי השורה והסיכום מוממשים במחלקות הבנות.
+    Abstract base class implementing Template Method for parsing attendance reports.
+    Main process is shared while row parsing and specific filtering are implemented in subclasses.
     """
 
     @staticmethod
     def _validate_raw_text(raw_text: str) -> bool:
-        """בדיקת תקינות ראשונית לטקסט שחולץ ב-OCR."""
+        """Initial check for text validity extracted by OCR."""
         if not raw_text or not isinstance(raw_text, str):
             return False
         if len(raw_text.strip()) < 10:
@@ -21,8 +22,8 @@ class BaseParser(ABC):
 
     def parse(self, raw_text: str) -> List:
         """
-        Template Method (תבנית התהליך):
-        מנהלת את רצף הפעולות האחיד: ניקוי, פיצול, דילוג על כותרות ועיבוד שורות.
+        Template Method:
+        Manages sequential workflow: cleanup, splitting, header skipping, and row processing.
         """
         if not self._validate_raw_text(raw_text):
             raise ValueError('הטקסט שחולץ אינו תקין או ריק.')
@@ -46,17 +47,38 @@ class BaseParser(ABC):
 
     @abstractmethod
     def _is_header_line(self, line_str: str) -> bool:
-        """זיהוי שורות כותרת שיש לדלג עליהן."""
+        """Identifies header lines to skip."""
         pass
 
     @abstractmethod
     def _parse_row(self, line_str: str):
-        """ניתוח שורת נתונים ספציפית בהתאם למבנה הדו"ח."""
+        """Parses a specific row according to report structure."""
         pass
+
+    @staticmethod
+    def _parse_and_validate_date(date_str: str) -> str:
+        """Cleans and validates whether the given string represents a legitimate calendar date."""
+        if not date_str:
+            return "לא זוהה"
+        cleaned = re.sub(r'\s*[\/\.\-\|]\s*', '/', date_str.strip())
+        parts = cleaned.split('/')
+        if len(parts) != 3:
+            return "לא זוהה"
+        try:
+            day = int(parts[0])
+            month = int(parts[1])
+            year = int(parts[2])
+            if year < 100:
+                year += 2000
+
+            datetime(year, month, day)
+            return f"{day}/{month}/{year}"
+        except (ValueError, IndexError):
+            return "לא זוהה"
 
 
 class AttendanceParserTypeAParser(BaseParser):
-    """מימוש פארסר עבור דו"ח מסוג A."""
+    """Parser implementation for Type A report."""
 
     def _is_header_line(self, line_str: str) -> bool:
         if 'תאריך' in line_str and any(k in line_str for k in ['כניסה', 'יציאה', 'מקום', 'הפסקה', 'שבת']):
@@ -77,7 +99,7 @@ class AttendanceParserTypeAParser(BaseParser):
         date_match = date_pattern.search(line_str)
         if date_match:
             raw_d = date_match.group(1)
-            date_val = re.sub(r'\s*[\/\.\-\|]\s*', '/', raw_d)
+            date_val = self._parse_and_validate_date(raw_d)
         else:
             times_check = time_pattern.findall(line_str)
             if not times_check and digits_count < 6:
@@ -113,7 +135,8 @@ class AttendanceParserTypeAParser(BaseParser):
             cleaned = cleaned.replace(day_match.group(1), '')
 
         hebrew_words = [w.strip() for w in re.findall(r'[\u0590-\u05fe]{2,}', cleaned) if w.strip()]
-        ignore_keywords = {'שבת', 'ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'יום', 'סה"כ', 'סהכ', 'שעות', 'תאריך', 'כניסה', 'יציאה', 'הפסקה', 'מקום'}
+        ignore_keywords = {'שבת', 'ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'יום', 'סה"כ', 'סהכ', 'שעות',
+                           'תאריך', 'כניסה', 'יציאה', 'הפסקה', 'מקום'}
         location_val = "לא זוהה"
         for w in hebrew_words:
             if w not in ignore_keywords:
@@ -136,12 +159,13 @@ class AttendanceParserTypeAParser(BaseParser):
 
 
 class AttendanceParserTypeBParser(BaseParser):
-    """מימוש פארסר עבור דו"ח מסוג B."""
+    """Parser implementation for Type B report."""
 
     def _is_header_line(self, line_str: str) -> bool:
         if 'תאריך' in line_str and any(k in line_str for k in ['כניסה', 'יציאה', 'שעות', 'בשבוע']):
             return True
-        if any(k in line_str for k in ['מחיר לשעה', 'כרטיס עובד', 'שם העובד']) and not any(c.isdigit() for c in line_str):
+        if any(k in line_str for k in ['מחיר לשעה', 'כרטיס עובד', 'שם העובד']) and not any(
+                c.isdigit() for c in line_str):
             return True
         if sum(1 for c in line_str if c.isdigit()) < 3:
             return True
@@ -157,7 +181,7 @@ class AttendanceParserTypeBParser(BaseParser):
         date_match = date_pattern.search(line_str)
         if date_match:
             raw_d = date_match.group(1)
-            date_val = re.sub(r'\s*[\/\.\-\|]\s*', '/', raw_d)
+            date_val = self._parse_and_validate_date(raw_d)
         else:
             times_check = time_pattern.findall(line_str)
             if not times_check and digits_count < 5:
@@ -187,7 +211,8 @@ class AttendanceParserTypeBParser(BaseParser):
             cleaned = cleaned.replace(day_match.group(1), '')
 
         hebrew_words = [w.strip() for w in re.findall(r'[\u0590-\u05fe]{2,}', cleaned) if w.strip()]
-        ignore_keywords = {'שבת', 'ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'יום', 'שעות', 'תאריך', 'כניסה', 'יציאה'}
+        ignore_keywords = {'שבת', 'ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'יום', 'שעות', 'תאריך', 'כניסה',
+                           'יציאה'}
         notes_words = [w for w in hebrew_words if w not in ignore_keywords]
         notes_val = " ".join(notes_words) if notes_words else ""
 
@@ -202,7 +227,7 @@ class AttendanceParserTypeBParser(BaseParser):
 
 
 class AttendanceParserService:
-    """מחלקת מעטפת לשמירה על ממשק קריאה תואם מול שאר המערכת."""
+    """Wrapper class to maintain compatible caller interface across system."""
 
     @staticmethod
     def parse_rows_type_a(raw_text: str) -> List[AttendanceRowTypeA]:

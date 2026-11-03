@@ -12,3 +12,4 @@ et-xmlfile==2.0.0
 six>=1.5
 pytest>=9.2.0
 pluggy>=1.7.0
+python-bidi>=0.4.2

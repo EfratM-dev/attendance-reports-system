@@ -7,8 +7,8 @@ from models.attendance_row import AttendanceRowTypeA, AttendanceRowTypeB
 
 class AttendanceMockService:
     """
-    שירות המייצר נתונים דטרמיניסטיים, אמינים והגיוניים עבור שורות נוכחות.
-    השירות מבטיח כי הרצה על אותו קובץ/סט שורות תפיק תמיד את אותה התוצאה בדיוק.
+    Service generating deterministic, reliable, and logical data for attendance rows.
+    Ensures running on the same file/row set produces identical results.
     """
 
     @classmethod
@@ -18,8 +18,8 @@ class AttendanceMockService:
         custom_seed: Optional[Union[int, str]] = None
     ) -> random.Random:
         """
-        יוצר מחולל אקראיות (RNG) דטרמיניסטי המבוסס על תוכן שורות הדו"ח או seed מותאם אישית.
-        השימוש ב-hashlib.md5 מבטיח זהות מוחלטת בין הרצות שונות וגרסאות פייתון שונות.
+        Creates a deterministic Random Number Generator based on row content or a custom seed.
+        Using hashlib.md5 guarantees exact consistency across runs and Python versions.
         """
         if isinstance(custom_seed, int):
             return random.Random(custom_seed)
@@ -27,7 +27,7 @@ class AttendanceMockService:
             seed_int = int(hashlib.md5(custom_seed.encode('utf-8')).hexdigest()[:8], 16)
             return random.Random(seed_int)
 
-        # יצירת טביעת אצבע (Fingerprint) ייחודית וקבועה מהשורות המקוריות
+        # Create unique fingerprint from original rows
         data_fingerprint = "|".join(
             f"{getattr(r, 'date', '')}_{getattr(r, 'day_of_week', '')}_{getattr(r, 'location', '')}_{getattr(r, 'notes', '')}_{i}"
             for i, r in enumerate(rows)
@@ -40,7 +40,7 @@ class AttendanceMockService:
 
     @staticmethod
     def _generate_random_entry_time(rng: Optional[random.Random] = None) -> str:
-        """יוצר שעת כניסה בין 07:00 ל-15:00 בצורה דטרמיניסטית לפי ה-RNG."""
+        """Generates entry time between 07:00 and 15:00 deterministically."""
         generator = rng if rng is not None else random
         hour = generator.randint(7, 15)
         minute = generator.choice([0, 15, 30, 45])
@@ -50,7 +50,7 @@ class AttendanceMockService:
 
     @staticmethod
     def _generate_random_exit_time(entry_str: str, rng: Optional[random.Random] = None) -> str:
-        """יוצר שעת יציאה המאוחרת משעת הכניסה ועד לשעה 16:00 בצורה דטרמיניסטית."""
+        """Generates exit time after entry time up to 16:00 deterministically."""
         generator = rng if rng is not None else random
         entry_dt = datetime.strptime(entry_str, '%H:%M')
         max_exit_dt = entry_dt.replace(hour=16, minute=0)
@@ -74,7 +74,7 @@ class AttendanceMockService:
 
     @staticmethod
     def _calculate_net_hours(entry_str: str, exit_str: str, break_str: str) -> float:
-        """מחשב באופן מדויק את סך שעות העבודה בניכוי ההפסקה."""
+        """Calculates net working hours deducting break time."""
         fmt = '%H:%M'
         entry = datetime.strptime(entry_str, fmt)
         exit_t = datetime.strptime(exit_str, fmt)
@@ -86,18 +86,18 @@ class AttendanceMockService:
         net_minutes = max(0.0, total_minutes - break_minutes)
         return round(net_minutes / 60, 2)
 
+
     @classmethod
     def randomize_rows_type_a(
-        cls,
-        rows: List[AttendanceRowTypeA],
-        seed: Optional[Union[int, str]] = None
+            cls,
+            rows: List[AttendanceRowTypeA],
+            seed: Optional[Union[int, str]] = None
     ) -> List[AttendanceRowTypeA]:
         """
-        מעדכן שורות מסוג A בווריאציה הגיונית ודטרמיניסטית.
-        הרצה חוזרת על אותו קובץ תמיד תניב נתונים זהים.
-        משמרת במדויק את יום השבוע והמקום מקובץ המקור.
+        Updates Type A rows deterministically by creating new immutable row instances.
         """
         rng = cls._create_deterministic_rng(rows, seed)
+        updated_rows = []
 
         for row in rows:
             entry = cls._generate_random_entry_time(rng)
@@ -107,27 +107,21 @@ class AttendanceMockService:
 
             net_hours = cls._calculate_net_hours(entry, exit_t, break_t)
 
-            # שימור יום השבוע מקובץ המקור
+            # Preserve day of week from source
             original_day = getattr(row, 'day_of_week', '')
-            if not original_day or original_day.strip() == '':
-                row.day_of_week = "לא זוהה"
-            else:
-                row.day_of_week = original_day.strip()
+            day_val = original_day.strip() if original_day and original_day.strip() else "לא זוהה"
 
-            # שימור המקום מקובץ המקור
+            # Preserve location from source
             original_loc = getattr(row, 'location', '')
-            if not original_loc or original_loc.strip() == '':
-                row.location = "לא זוהה"
-            else:
-                row.location = original_loc.strip()
+            loc_val = original_loc.strip() if original_loc and original_loc.strip() else "לא זוהה"
 
-            # חישוב שעות ואחוזים בהתאם ליום השבוע המקורי
+            # Calculate overtime hours according to day of week
             h_100 = 0.0
             h_125 = 0.0
             h_150 = 0.0
             shabbat_hours = 0.0
 
-            if 'שבת' in row.day_of_week:
+            if 'שבת' in day_val:
                 shabbat_hours = net_hours
             else:
                 if net_hours <= 8.0:
@@ -141,33 +135,40 @@ class AttendanceMockService:
                         h_125 = 2.0
                         h_150 = overtime - 2.0
 
-            row.entry_time = entry
-            row.exit_time = exit_t
-            row.break_time = break_t
-            row.total_hours = f'{net_hours:.2f}'
-            row.hours_100 = f'{h_100:.2f}' if h_100 > 0 else '0.00'
-            row.hours_125 = f'{h_125:.2f}' if h_125 > 0 else '0.00'
-            row.hours_150 = f'{h_150:.2f}' if h_150 > 0 else '0.00'
-            row.shabbat = f'{shabbat_hours:.2f}' if shabbat_hours > 0 else '0.00'
+            date_val = getattr(row, 'date', '')
+            if not date_val or not date_val.strip():
+                date_val = "לא זוהה"
 
-            # וידוא תאריך תקין
-            if not getattr(row, 'date', None) or not row.date.strip():
-                row.date = "לא זוהה"
+            # Create a new immutable row instance
+            new_row = AttendanceRowTypeA(
+                date=date_val,
+                day_of_week=day_val,
+                location=loc_val,
+                entry_time=entry,
+                exit_time=exit_t,
+                break_time=break_t,
+                total_hours=f'{net_hours:.2f}',
+                hours_100=f'{h_100:.2f}' if h_100 > 0 else '0.00',
+                hours_125=f'{h_125:.2f}' if h_125 > 0 else '0.00',
+                hours_150=f'{h_150:.2f}' if h_150 > 0 else '0.00',
+                shabbat=f'{shabbat_hours:.2f}' if shabbat_hours > 0 else '0.00'
+            )
+            updated_rows.append(new_row)
 
-        return rows
+        return updated_rows
+
 
     @classmethod
     def randomize_rows_type_b(
-        cls,
-        rows: List[AttendanceRowTypeB],
-        seed: Optional[Union[int, str]] = None
+            cls,
+            rows: List[AttendanceRowTypeB],
+            seed: Optional[Union[int, str]] = None
     ) -> List[AttendanceRowTypeB]:
         """
-        מעדכן שורות מסוג B בווריאציה הגיונית ודטרמיניסטית.
-        הרצה חוזרת על אותו קובץ תמיד תניב נתונים זהים.
-        משמרת במדויק את יום השבוע וההערות מקובץ המקור.
+        Updates Type B rows deterministically by creating new immutable row instances.
         """
         rng = cls._create_deterministic_rng(rows, seed)
+        updated_rows = []
 
         for row in rows:
             entry = cls._generate_random_entry_time(rng)
@@ -177,22 +178,27 @@ class AttendanceMockService:
 
             net_hours = cls._calculate_net_hours(entry, exit_t, break_t)
 
-            # שימור יום השבוע מקובץ המקור
+            # Preserve day of week from source
             original_day = getattr(row, 'day_of_week', '')
-            if not original_day or original_day.strip() == '':
-                row.day_of_week = "לא זוהה"
-            else:
-                row.day_of_week = original_day.strip()
+            day_val = original_day.strip() if original_day and original_day.strip() else "לא זוהה"
 
-            # שימור הערות
+            # Preserve notes from source
             original_notes = getattr(row, 'notes', '')
-            row.notes = original_notes if original_notes else ""
+            notes_val = original_notes if original_notes else ""
 
-            row.entry_time = entry
-            row.exit_time = exit_t
-            row.total_hours = f'{net_hours:.2f}'
+            date_val = getattr(row, 'date', '')
+            if not date_val or not date_val.strip():
+                date_val = "לא זוהה"
 
-            if not getattr(row, 'date', None) or not row.date.strip():
-                row.date = "לא זוהה"
+            # Create a new immutable row instance
+            new_row = AttendanceRowTypeB(
+                date=date_val,
+                day_of_week=day_val,
+                entry_time=entry,
+                exit_time=exit_t,
+                total_hours=f'{net_hours:.2f}',
+                notes=notes_val
+            )
+            updated_rows.append(new_row)
 
-        return rows
+        return updated_rows

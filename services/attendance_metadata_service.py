@@ -1,9 +1,8 @@
 import re
-from models.attendance_report import AttendanceReportTypeA, AttendanceReportTypeB
 
 
 class AttendanceMetadataService:
-    """שירות האחראי על חילוץ ועדכון מטא-דאטה של הדו"ח באופן גמיש ועמיד בפני שגיאות OCR."""
+    """Service responsible for extracting report metadata reliably and flexibly against OCR errors."""
 
     _INVALID_NAMES = {'לא', 'זוהה', 'לא זוהה'}
     _HEBREW_MONTHS = {
@@ -16,15 +15,11 @@ class AttendanceMetadataService:
     }
 
     @staticmethod
-    def process_metadata_type_a(report: AttendanceReportTypeA, raw_text: str,
-                                randomized_date_str: str) -> AttendanceReportTypeA:
-        """
-        מחלץ את שם החברה מתוך הטקסט הגולמי של דו"ח מסוג A בצורה גמישה.
-        """
+    def extract_company_name(raw_text: str) -> str:
+        """Extracts company name from Type A raw text."""
         lines = raw_text.splitlines()
         company_name = "לא זוהה"
 
-        # חיפוש גמיש אחר מילות מפתח המעידות על חברה או מעסיק
         company_indicators = ['בע"מ', 'בע״מ', 'בעמ', 'כח אדם', 'חברה', 'שם המעסיק']
         for line in lines:
             line_str = line.strip()
@@ -35,23 +30,11 @@ class AttendanceMetadataService:
                     company_name = clean_line
                     break
 
-        report.company_name = company_name
-        return report
+        return company_name
 
     @classmethod
-    def process_metadata_type_b(cls, report: AttendanceReportTypeB, raw_text: str,
-                                randomized_month_str: str) -> AttendanceReportTypeB:
-        """
-        מחלץ את שם העובד ואת חודש הדו"ח בצורה חסונה המונעת התאמת יתר (Overfitting).
-        """
-        report.employee_name = cls._extract_employee_name(raw_text)
-        report.report_month = cls._extract_report_month(report, raw_text, randomized_month_str)
-        return report
-
-    @classmethod
-    def _extract_employee_name(cls, raw_text: str) -> str:
-        """חילוץ שם עובד באמצעות תבנית רגולרית גמישה לרווחים ולתווים מיוחדים."""
-        # חיפוש תבנית גמישה המאפשרת רווחים משתנים או סימני הפרדה שונים
+    def extract_employee_name(cls, raw_text: str) -> str:
+        """Extracts employee name using regex flexible to whitespace and special characters."""
         match = re.search(r'שם\s*העובד\s*[:\-]?\s*([^\r\n]+)', raw_text)
         if match:
             raw_name = match.group(1)
@@ -59,7 +42,6 @@ class AttendanceMetadataService:
             if cleaned and cleaned not in cls._INVALID_NAMES:
                 return cleaned
 
-        # גיבוי: סריקת שורות לאיתור מילת המפתח במקרה של שיבושי OCR
         lines = raw_text.splitlines()
         for line in lines:
             if 'עובד' in line:
@@ -72,12 +54,10 @@ class AttendanceMetadataService:
         return "לא זוהה"
 
     @classmethod
-    def _extract_report_month(cls, report: AttendanceReportTypeB, raw_text: str, randomized_month_str: str) -> str:
-        """חילוץ חודש הדו"ח במגוון שכבות גיבוי למניעת תלות במבנה קשיח."""
-
-        # 1. חילוץ מתוך תאריכי השורות בדו"ח (השיטה האמינה והעמידה ביותר)
-        if getattr(report, 'rows', None):
-            for row in report.rows:
+    def extract_report_month(cls, rows: list, raw_text: str, randomized_month_str: str) -> str:
+        """Extracts report month using multiple fallback mechanisms."""
+        if rows:
+            for row in rows:
                 d = getattr(row, 'date', '')
                 if d and ('/' in d or '.' in d):
                     d_parts = re.split(r'[\/\.]', d)
@@ -89,7 +69,6 @@ class AttendanceMetadataService:
                         if len(m_num) == 2 and int(m_num) <= 12:
                             return f"{m_num}/{y_num}" if y_num else m_num
 
-        # 2. חיפוש תבנית תאריך חודש תקנית בטקסט (MM/YYYY או MM.YYYY)
         month_match = re.search(r'\b(0?[1-9]|1[0-2])[\/\.](20\d{2}|\d{2})\b', raw_text)
         if month_match:
             m_num = f"{int(month_match.group(1)):02d}"
@@ -98,7 +77,6 @@ class AttendanceMetadataService:
                 y_num = f"20{y_num}"
             return f"{m_num}/{y_num}"
 
-        # 3. חיפוש חודשים עבריים מילוליים בטקסט
         for h_name, m_code in cls._HEBREW_MONTHS.items():
             m_regex = re.search(rf'{h_name}[-\s/]?(\d{{2,4}})', raw_text)
             if m_regex:
@@ -107,7 +85,6 @@ class AttendanceMetadataService:
                     y_val = f"20{y_val}"
                 return f"{m_code}/{y_val}"
 
-        # 4. גיבוי מתוך מחרוזת מותאמת אם קיימת ובעלת ספרות תקינות
         if randomized_month_str and any(
                 c.isdigit() for c in randomized_month_str) and randomized_month_str not in cls._INVALID_NAMES:
             return randomized_month_str

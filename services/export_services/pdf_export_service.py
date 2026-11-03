@@ -9,7 +9,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 
 def _setup_hebrew_font():
-    """מאתר ורושם גופן עברי תקין למניעת תווים משובשים או ריבועים שחורים."""
+    """Locates and registers Hebrew TTF font to avoid rendering squares or corrupted text."""
     font_name = "HebrewFont"
     if font_name in pdfmetrics.getRegisteredFontNames():
         return font_name
@@ -40,11 +40,7 @@ def _setup_hebrew_font():
 
 
 def _bidi_text(text: str) -> str:
-    """
-    מבצעת היפוך כיווניות עבור טקסט עברי (BiDi)
-    על מנת שיוצג מימין לשמאל באופן קריא ותקין ב-PDF,
-    תוך שמירה על מספרים, תאריכים ושעות בסדר הנכון.
-    """
+    """Converts Hebrew text bidirectionally for proper right-to-left alignment in PDF."""
     if not text or not isinstance(text, str):
         return ""
 
@@ -72,13 +68,12 @@ def _bidi_text(text: str) -> str:
 
 
 class PdfExportServiceTypeA:
-    """שירות ייצוא PDF עבור דו"ח מסוג A."""
+    """PDF export service for Type A reports."""
 
     @classmethod
     def export(cls, report, filename: str) -> str:
         font_name = _setup_hebrew_font()
 
-        # הגדרת שוליים של 20 נקודות כדי להבטיח כניסה מושלמת בעמוד A4 אחד (דרישה 8)
         doc = SimpleDocTemplate(
             filename,
             pagesize=A4,
@@ -95,21 +90,17 @@ class PdfExportServiceTypeA:
             fontName=font_name,
             fontSize=13,
             leading=16,
-            alignment=2,  # יישור לימין
+            alignment=2,
             textColor=colors.HexColor('#1f2937')
         )
 
         story = []
 
-        # כותרת עם שם החברה מקובץ המקור
         company_label = report.company_name if report.company_name else "לא זוהה"
         title_text = _bidi_text(f"{company_label} - דו\"ח נוכחות")
         story.append(Paragraph(title_text, title_style))
         story.append(Spacer(1, 10))
 
-        # כותרות הטבלה: בעמוד המודפס (משמאל לימין ב-ReportLab)
-        # כדי ש"תאריך" יופיע בימין הקיצוני ו"שבת" בשמאל הקיצוני,
-        # הסדר המועבר הוא: שבת, 150%, 125%, 100%, סה"כ, הפסקה, יציאה, כניסה, מקום, יום, תאריך
         headers = [
             _bidi_text("שבת"),
             "150%",
@@ -141,7 +132,6 @@ class PdfExportServiceTypeA:
                 _bidi_text(str(getattr(row, 'date', 'לא זוהה')))
             ])
 
-        # רוחבי עמודות משמאל לימין (שבת עד תאריך)
         col_widths = [45, 45, 45, 45, 45, 45, 45, 45, 55, 45, 55]
 
         main_table = Table(table_data, colWidths=col_widths, repeatRows=1)
@@ -161,7 +151,6 @@ class PdfExportServiceTypeA:
         story.append(main_table)
         story.append(Spacer(1, 10))
 
-        # טבלת סיכום - מיושרת לצד ימין עם ערכים בעברית
         if report.summary:
             s = report.summary
             summary_data = [
@@ -192,7 +181,7 @@ class PdfExportServiceTypeA:
 
 
 class PdfExportServiceTypeB:
-    """שירות ייצוא PDF עבור דו"ח מסוג B."""
+    """PDF export service for Type B reports."""
 
     @classmethod
     def export(cls, report, filename: str) -> str:
@@ -248,7 +237,6 @@ class PdfExportServiceTypeB:
             story.append(sum_table)
             story.append(Spacer(1, 8))
 
-        # כותרות הטבלה הראשית עבור סוג B - משמאל לימין ב-ReportLab כך ש"תאריך" מופיע בצד ימין
         headers = [
             _bidi_text("הערות"),
             _bidi_text('סה"כ שעות'),

@@ -1,11 +1,11 @@
 from abc import ABC
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class BaseAttendanceRow(ABC):
-    """מחלקה אבסטרקטית למאפייני השורה המשותפים."""
+    """Abstract base class for common attendance row attributes (Immutable)."""
     date: str
     day_of_week: str
     entry_time: str
@@ -13,9 +13,9 @@ class BaseAttendanceRow(ABC):
     total_hours: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class AttendanceRowTypeA(BaseAttendanceRow):
-    """מאפייני שורה עבור סוג A[cite: 7]."""
+    """Row attributes for Type A report (Immutable)."""
     location: str
     break_time: str
     hours_100: str
@@ -24,7 +24,7 @@ class AttendanceRowTypeA(BaseAttendanceRow):
     shabbat: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class AttendanceRowTypeB(BaseAttendanceRow):
-    """מאפייני שורה עבור סוג B[cite: 7]."""
+    """Row attributes for Type B report (Immutable)."""
     notes: Optional[str] = ""

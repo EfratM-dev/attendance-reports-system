@@ -3,13 +3,13 @@ from openpyxl.styles import Font, Alignment, PatternFill
 
 
 class ExcelExportServiceTypeA:
-    """שירות ייצוא Excel עבור דו"ח מסוג A."""
+    """Excel export service for Type A attendance reports."""
 
     @classmethod
     def export(cls, report, filename: str) -> str:
         wb = Workbook()
         ws = wb.active
-        ws.title = "דו\"ח נוכחות"
+        ws.title = 'דו"ח נוכחות'
         ws.sheet_view.rightToLeft = True
 
         ws.append([f"דו\"ח נוכחות - חברה: {report.company_name or 'לא זוהה'}"])
@@ -61,7 +61,7 @@ class ExcelExportServiceTypeA:
 
 
 class ExcelExportServiceTypeB:
-    """שירות ייצוא Excel עבור דו"ח מסוג B."""
+    """Excel export service for Type B attendance reports."""
 
     @classmethod
     def export(cls, report, filename: str) -> str:

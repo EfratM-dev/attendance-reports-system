@@ -13,78 +13,76 @@ from services.export_services.excel_export_service import ExcelExportServiceType
 
 class BaseReportHandler(ABC):
     """
-    מחלקה אבסטרקטית המגדירה Template Method לתהליך עיבוד דוח נוכחות.
-    כל סוג דוח (TypeA, TypeB...) מחויב לממש את כל תת-הפונקציות:
-    זיהוי, פרסור, שינויים הגיוניים, מטא-דאטה, סיכום וייצוא.
+    Abstract class defining Template Method for processing attendance report.
+    Subclasses implement matching, parsing, randomization, metadata, summary, and export steps.
     """
 
     @staticmethod
     @abstractmethod
     def is_match_type(raw_text: str) -> bool:
-        """שלב 1: בדיקת התאמת הטקסט הגולמי לסוג הדוח."""
+        """Step 1: Check raw text match for report type."""
         pass
 
     @classmethod
     @abstractmethod
     def parse_rows(cls, raw_text: str) -> list:
-        """שלב 2: ניתוח וחילוץ שורות הנוכחות מתוך הטקסט הגולמי."""
+        """Step 2: Parse and extract rows from raw text."""
         pass
 
     @classmethod
     @abstractmethod
     def randomize_data(cls, rows: list) -> list:
-        """שלב 3: החלת וריאציה הגיונית ודטרמיניסטית על השורות תוך שימור נתוני המקור."""
+        """Step 3: Apply deterministic variations preserving original data."""
         pass
 
     @classmethod
     @abstractmethod
     def extract_metadata(cls, raw_text: str, rows: list) -> dict:
-        """שלב 4: חילוץ נתוני מטא-דאטה (שם חברה / שם עובד / חודש)."""
+        """Step 4: Extract metadata (company / employee / month)."""
         pass
 
     @classmethod
     @abstractmethod
     def calculate_summary(cls, rows: list):
-        """שלב 5: חישוב נתוני סיכום השעות וימי העבודה."""
+        """Step 5: Calculate total hours and work days summary."""
         pass
 
     @classmethod
     @abstractmethod
     def create_report_object(cls, rows: list, metadata: dict, summary):
-        """שלב 6: הרכבת אובייקט הדו"ח השלם."""
+        """Step 6: Construct complete report object."""
         pass
 
     @staticmethod
     @abstractmethod
     def export_report(report, export_format: str = "pdf", output_filename: str = None) -> str:
-        """שלב 7: ייצוא הדו"ח לפורמט המבוקש (PDF / Excel)."""
+        """Step 7: Export report to requested format (PDF / Excel)."""
         pass
 
     @classmethod
     def process_report(cls, raw_text: str):
         """
-        Template Method (תבנית התהליך):
-        מנהלת את רצף העיבוד בסדר קבוע ומחייב לכל סוג דוח,
-        מבלי שסוג דוח ספציפי יוכל לשבש את סדר השלבים.
+        Template Method:
+        Manages sequential processing steps in strict order.
         """
-        # 1. פרסור השורות
+        # 1. Parse rows
         parsed_rows = cls.parse_rows(raw_text)
 
-        # 2. החלת וריאציות הגיוניות
+        # 2. Apply variations
         varied_rows = cls.randomize_data(parsed_rows)
 
-        # 3. חילוץ מטא-דאטה
+        # 3. Extract metadata
         metadata = cls.extract_metadata(raw_text, varied_rows)
 
-        # 4. חישוב טבלת סיכום
+        # 4. Calculate summary table
         summary = cls.calculate_summary(varied_rows)
 
-        # 5. יצירת אובייקט הדוח הסופי
+        # 5. Create final report object
         return cls.create_report_object(varied_rows, metadata, summary)
 
 
 class TypeAHandler(BaseReportHandler):
-    """מימוש מלא עבור דו"ח מסוג A."""
+    """Implementation for Type A report."""
 
     @staticmethod
     def is_match_type(raw_text: str) -> bool:
@@ -98,11 +96,13 @@ class TypeAHandler(BaseReportHandler):
     def randomize_data(cls, rows: list) -> list:
         return AttendanceMockService.randomize_rows_type_a(rows)
 
+    class TypeAHandler(BaseReportHandler):
+        ...
+
     @classmethod
     def extract_metadata(cls, raw_text: str, rows: list) -> dict:
-        temp_report = AttendanceReportTypeA(report_type="TYPE_A", company_name="", rows=rows, summary=None)
-        AttendanceMetadataService.process_metadata_type_a(temp_report, raw_text, "")
-        return {"company_name": temp_report.company_name}
+        company_name = AttendanceMetadataService.extract_company_name(raw_text)
+        return {"company_name": company_name}
 
     @classmethod
     def calculate_summary(cls, rows: list):
@@ -135,7 +135,7 @@ class TypeAHandler(BaseReportHandler):
 
 
 class TypeBHandler(BaseReportHandler):
-    """מימוש מלא עבור דו"ח מסוג B."""
+    """Implementation for Type B report."""
 
     @staticmethod
     def is_match_type(raw_text: str) -> bool:
@@ -149,9 +149,11 @@ class TypeBHandler(BaseReportHandler):
     def randomize_data(cls, rows: list) -> list:
         return AttendanceMockService.randomize_rows_type_b(rows)
 
+    class TypeBHandler(BaseReportHandler):
+        ...
+
     @classmethod
     def extract_metadata(cls, raw_text: str, rows: list) -> dict:
-        # הפקת מספר חודש מדויק (למשל 1/9/22 -> 09/2022)
         month_str = "09/2022"
         for r in rows:
             d = getattr(r, 'date', '')
@@ -159,16 +161,16 @@ class TypeBHandler(BaseReportHandler):
                 d_parts = d.split('/')
                 if len(d_parts) >= 2 and d_parts[1].isdigit():
                     m_num = f"{int(d_parts[1]):02d}"
-                    y_num = f"20{d_parts[2]}" if len(d_parts) > 2 and len(d_parts[2]) == 2 and d_parts[2].isdigit() else (d_parts[2] if len(d_parts) > 2 else "2022")
+                    y_num = f"20{d_parts[2]}" if len(d_parts) > 2 and len(d_parts[2]) == 2 and d_parts[
+                        2].isdigit() else (d_parts[2] if len(d_parts) > 2 else "2022")
                     month_str = f"{m_num}/{y_num}"
                     break
 
-        temp_report = AttendanceReportTypeB(report_type="TYPE_B", employee_name="", report_month=month_str,
-                                            rows=rows, summary=None)
-        AttendanceMetadataService.process_metadata_type_b(temp_report, raw_text, month_str)
+        employee_name = AttendanceMetadataService.extract_employee_name(raw_text)
+        report_month = AttendanceMetadataService.extract_report_month(rows, raw_text, month_str)
         return {
-            "employee_name": temp_report.employee_name,
-            "report_month": temp_report.report_month or month_str
+            "employee_name": employee_name,
+            "report_month": report_month or month_str
         }
 
     @classmethod
@@ -203,7 +205,7 @@ class TypeBHandler(BaseReportHandler):
 
 
 class AttendancePipelineService:
-    """שירות מרכזי המנהל את צינור העיבוד והייצוא באמצעות מילון אסטרטגיות."""
+    """Central service managing processing pipeline and export strategy map."""
 
     def __init__(self):
         self.handlers = {
@@ -214,15 +216,14 @@ class AttendancePipelineService:
     def process_and_export_report(self, file_url_or_path: str, export_format: str = "pdf",
                                   output_path: str = None) -> str:
         """
-        מחלץ את הטקסט, מזהה את סוג הדו"ח באופן אוטומטי, מעבד אותו
-        ומייצא לקובץ בפורמט המבוקש לפי בחירת המשתמש.
-        דרישה 9: שם קובץ הפלט מקבל את שם קובץ הקלט בתוספת המילה output.
+        Extracts text, automatically identifies report type, processes data,
+        and exports to requested format.
+        Output filename appends suffix.
         """
         raw_text = PDFTextExtractorRepository.extract_text_from_pdf(file_url_or_path)
         if not raw_text:
             raise ValueError('לא הצליח לחלץ טקסט מהקובץ הסרוק.')
 
-        # הפקת סיומת ושם קובץ הפלט באמצעות if / elif
         if not output_path:
             format_lower = export_format.lower()
             if format_lower in ["excel", "xlsx"]:

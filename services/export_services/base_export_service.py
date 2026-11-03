@@ -1,20 +1,20 @@
 class BaseExportService:
-    """מחלקת בסיס גנרית המרכזת פעולות עזר משותפות לכל סוגי הייצוא."""
+    """Generic base class encapsulating shared helper methods for exports."""
 
     @staticmethod
     def _extract_summary_dict(report) -> dict:
-        """מחזיר את מילון הנתונים מתוך אובייקט הסיכום של הדו"ח, אם קיים."""
+        """Extracts dictionary representation of summary object if present."""
         if report and report.summary:
             return report.summary.__dict__
         return {}
 
 
 class BaseTypeAExportService(BaseExportService):
-    """מחלקת בסיס ייעודית עבור דו"חות מסוג A (הכנת נתונים, כותרות וכותרת ראשית)."""
+    """Base export service for Type A reports."""
 
     @staticmethod
     def _get_headers() -> list:
-        return ["תאריך", "כניסה", "יציאה", "סה\"כ שעות", "100%", "125%", "150%", "שבת"]
+        return ["תאריך", "כניסה", "יציאה", 'סה"כ שעות', "100%", "125%", "150%", "שבת"]
 
     @staticmethod
     def _get_rows_data(rows) -> list:
@@ -34,11 +34,11 @@ class BaseTypeAExportService(BaseExportService):
 
 
 class BaseTypeBExportService(BaseExportService):
-    """מחלקת בסיס ייעודית עבור דו"חות מסוג B (הכנת נתונים, כותרות וכותרת ראשית)."""
+    """Base export service for Type B reports."""
 
     @staticmethod
     def _get_headers() -> list:
-        return ["תאריך", "כניסה", "יציאה", "סה\"כ שעות"]
+        return ["תאריך", "כניסה", "יציאה", 'סה"כ שעות']
 
     @staticmethod
     def _get_rows_data(rows) -> list:

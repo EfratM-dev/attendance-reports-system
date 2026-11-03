@@ -1,26 +1,27 @@
 from abc import ABC
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Any
+from typing import List, Any, Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class BaseAttendanceReport(ABC):
-    """מחלקה אבסטרקטית הכוללת את מאפייני הדו"ח המשותפים."""
+    """Abstract base class containing common report attributes (Immutable)."""
     report_type: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class AttendanceReportTypeA(BaseAttendanceReport):
-    """מאפייני דו"ח עבור סוג A הכוללים רשימת שורות סוג A, נתוני סיכום A ושם החברה[cite: 10]."""
+    """Report attributes for Type A including rows list, summary data, and company name (Immutable)."""
     company_name: str
-    rows: List = field(default_factory=list)
-    summary: object = None
+    rows: List[Any] = field(default_factory=list)
+    summary: Optional[Any] = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class AttendanceReportTypeB(BaseAttendanceReport):
-    """מאפייני דו"ח עבור סוג B הכוללים רשימת שורות סוג B, נתוני סיכום B, שם העובד וחודש הדו"ח[cite: 10]."""
+    """Report attributes for Type B including rows list, summary data, employee name, and report month (Immutable)."""
     employee_name: str
     report_month: str
-    rows: List = field(default_factory=list)
-    summary: object = None
+    rows: List[Any] = field(default_factory=list)
+    summary: Optional[Any] = None

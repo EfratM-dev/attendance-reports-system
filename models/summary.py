@@ -2,16 +2,16 @@ from abc import ABC
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class BaseSummary(ABC):
-    """מחלקה אבסטרקטית למאפייני הסיכום המשותפים."""
+    """Abstract base class for common summary attributes (Immutable)."""
     work_days: str
     hours: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class SummaryTypeA(BaseSummary):
-    """מאפייני סיכום עבור סוג A[cite: 9]."""
+    """Summary attributes for Type A report (Immutable)."""
     hours_100: str
     hours_125: str
     hours_150: str
@@ -20,8 +20,8 @@ class SummaryTypeA(BaseSummary):
     travel: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class SummaryTypeB(BaseSummary):
-    """מאפייני סיכום עבור סוג B[cite: 9]."""
+    """Summary attributes for Type B report (Immutable)."""
     hourly_rate: str
     total_payment: str
