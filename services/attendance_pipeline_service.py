@@ -1,5 +1,6 @@
 import os
 from abc import ABC, abstractmethod
+from datetime import date
 from repositories.ocr_repository import PDFTextExtractorRepository
 from services.report_classifier_service import ReportClassifierService
 from services.attendance_parser_service import AttendanceParserService
@@ -65,19 +66,10 @@ class BaseReportHandler(ABC):
         Template Method:
         Manages sequential processing steps in strict order.
         """
-        # 1. Parse rows
         parsed_rows = cls.parse_rows(raw_text)
-
-        # 2. Apply variations
         varied_rows = cls.randomize_data(parsed_rows)
-
-        # 3. Extract metadata
         metadata = cls.extract_metadata(raw_text, varied_rows)
-
-        # 4. Calculate summary table
         summary = cls.calculate_summary(varied_rows)
-
-        # 5. Create final report object
         return cls.create_report_object(varied_rows, metadata, summary)
 
 
@@ -95,9 +87,6 @@ class TypeAHandler(BaseReportHandler):
     @classmethod
     def randomize_data(cls, rows: list) -> list:
         return AttendanceMockService.randomize_rows_type_a(rows)
-
-    class TypeAHandler(BaseReportHandler):
-        ...
 
     @classmethod
     def extract_metadata(cls, raw_text: str, rows: list) -> dict:
@@ -149,16 +138,14 @@ class TypeBHandler(BaseReportHandler):
     def randomize_data(cls, rows: list) -> list:
         return AttendanceMockService.randomize_rows_type_b(rows)
 
-    class TypeBHandler(BaseReportHandler):
-        ...
-
     @classmethod
     def extract_metadata(cls, raw_text: str, rows: list) -> dict:
         month_str = "09/2022"
         for r in rows:
             d = getattr(r, 'date', '')
-            if d and '/' in d:
-                d_parts = d.split('/')
+            d_str = d.strftime('%d/%m/%Y') if isinstance(d, date) else str(d)
+            if d_str and '/' in d_str:
+                d_parts = d_str.split('/')
                 if len(d_parts) >= 2 and d_parts[1].isdigit():
                     m_num = f"{int(d_parts[1]):02d}"
                     y_num = f"20{d_parts[2]}" if len(d_parts) > 2 and len(d_parts[2]) == 2 and d_parts[
@@ -218,7 +205,6 @@ class AttendancePipelineService:
         """
         Extracts text, automatically identifies report type, processes data,
         and exports to requested format.
-        Output filename appends suffix.
         """
         raw_text = PDFTextExtractorRepository.extract_text_from_pdf(file_url_or_path)
         if not raw_text:

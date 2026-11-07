@@ -21,16 +21,23 @@ This application processes scanned Hebrew attendance reports in PDF format using
 
 3. **Template Method Parsing (`BaseParser`, `AttendanceParserTypeAParser`, `AttendanceParserTypeBParser`)**:
    - Unified parsing pipeline: validates text, strips header noise, parses structured rows, and extracts company/employee metadata flexible against OCR errors.
+   - Cleans OCR artifacts from notes to ensure the field remains strictly empty (`""`) when no valid original text exists.
 
 4. **Deterministic Variation & Invariants (`AttendanceMockService`)**:
    - **Immutable Data Models**: All `AttendanceRow`, `AttendanceReport`, and `Summary` classes are defined using `@dataclass(frozen=True)` to prevent unintended mutations.
-   - **Deterministic Seed**: Uses `hashlib.md5` hashing of original row data to ensure re-executing on the same input produces identical output.
+   - **Deterministic Seed**: Uses `hashlib.md5` hashing of original row data to ensure re-executing on the same input produces identical output across runs.
    - **Invariants Preserved**:
-     - `exit_time > entry_time`.
-     - `total_hours = exit_time - entry_time - break_time`.
-     - Preserves original dates, days of the week, locations, and notes.
+     - **Time Bounding**: Entry and exit times are strictly bounded within reasonable working hours (between 07:00 and 17:00), ensuring `exit_time > entry_time`.
+     - **Decimal Hours Format**: Total hours per row and in summaries are formatted in standard decimal representation (e.g., `3.50`, `6.50`) matching the source reports.
+     - **Breaks**: Breaks are preserved or slightly varied only if they existed in the original row; rows without breaks remain without invented breaks.
+     - **Type A**: `total_hours = exit_time - entry_time - break_time`.
+     - **Type B**: `total_hours = exit_time - entry_time`.
 
-5. **Exporting Strategies (`PdfExportService`, `ExcelExportService`)**:
+5. **Financial Precision & Summaries (`AttendanceSummaryService`)**:
+   - Aggregates total hours accurately based on minute-level calculations directly from `datetime.time` / `datetime.date` objects.
+   - Utilizes Python's `Decimal` with standard rounding (`ROUND_HALF_UP`) to compute total payments cleanly and resolve floating-point discrepancies.
+
+6. **Exporting Strategies (`PdfExportService`, `ExcelExportService`)**:
    - **PDF Generation**: Powered by `reportlab` with custom Hebrew font registration and BiDi text processing (`python-bidi`) to render right-to-left layout neatly on a single page.
    - **Excel Generation**: Powered by `openpyxl` with custom styling, headers, and RTL sheet views.
 
@@ -61,72 +68,3 @@ The project adopts clear design patterns to ensure decoupling and extensibility:
 ```bash
 sudo apt-get update
 sudo apt-get install -y tesseract-ocr tesseract-ocr-heb poppler-utils
-```
-
-#### macOS:
-```bash
-brew install tesseract tesseract-lang poppler
-```
-
-#### Windows:
-- Install Tesseract-OCR and add it to system `PATH`.
-- Download Poppler binaries and set environment path.
-
-### Python Environment Setup
-```bash
-# Clone the repository
-git clone <repository_url>
-cd attendance-report-generator
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
----
-
-## Usage
-
-Run the main CLI application:
-```bash
-python main.py
-```
-
-### Execution Flow:
-1. Enter the path to the input PDF file (e.g., `inputs/n_r_10_n.pdf`).
-2. Select desired output format (`pdf` or `excel`).
-3. The processed output file will be generated in the `outputs/` directory (e.g., `outputs/n_r_10_n_output.pdf`).
-
----
-
-## Running Tests
-
-Execute pytest suite covering classifier, metadata extraction, invariants, parsers, pipeline flow, and summaries:
-```bash
-pytest
-```
-
----
-
-## Docker Support
-
-### Build Image
-```bash
-docker build -t attendance-report-generator .
-```
-
-### Run Container
-```bash
-docker run --rm \
-  -v "$(pwd)/inputs:/app/inputs" \
-  -v "$(pwd)/outputs:/app/outputs" \
-  attendance-report-generator
-```
-
-### Run Tests in Container
-```bash
-docker run --rm attendance-report-generator pytest
-```

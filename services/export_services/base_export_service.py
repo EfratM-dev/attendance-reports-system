@@ -1,3 +1,6 @@
+from datetime import date
+
+
 class BaseExportService:
     """Generic base class encapsulating shared helper methods for exports."""
 
@@ -18,9 +21,21 @@ class BaseTypeAExportService(BaseExportService):
 
     @staticmethod
     def _get_rows_data(rows) -> list:
+        def format_date(d):
+            if isinstance(d, date):
+                return d.strftime('%d/%m/%Y')
+            return str(d)
+
+        def format_time(t):
+            if hasattr(t, 'strftime'):
+                return t.strftime('%H:%M')
+            return str(t or '')
+
         return [
             [
-                str(row.date), str(row.entry_time), str(row.exit_time),
+                format_date(row.date),
+                format_time(row.entry_time),
+                format_time(row.exit_time),
                 str(row.total_hours), str(row.hours_100),
                 str(row.hours_125), str(row.hours_150), str(row.shabbat)
             ]
@@ -42,9 +57,22 @@ class BaseTypeBExportService(BaseExportService):
 
     @staticmethod
     def _get_rows_data(rows) -> list:
+        def format_date(d):
+            if isinstance(d, date):
+                return d.strftime('%d/%m/%Y')
+            return str(d)
+
+        def format_time(t):
+            if hasattr(t, 'strftime'):
+                return t.strftime('%H:%M')
+            return str(t or '')
+
         return [
             [
-                str(row.date), str(row.entry_time), str(row.exit_time), str(row.total_hours)
+                format_date(row.date),
+                format_time(row.entry_time),
+                format_time(row.exit_time),
+                str(row.total_hours)
             ]
             for row in rows
         ]

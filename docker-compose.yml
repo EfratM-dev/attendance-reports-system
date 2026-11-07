@@ -3,9 +3,9 @@ version: '3.8'
 services:
   app:
     build: .
-    container_name: reports_management_system
+    container_name: attendance_report_generator
+    stdin_open: true
+    tty: true
     volumes:
-      - .:/app
-    ports:
-      - "8000:8000"
-    restart: unless-stopped
+      - ./inputs:/app/inputs
+      - ./outputs:/app/outputs

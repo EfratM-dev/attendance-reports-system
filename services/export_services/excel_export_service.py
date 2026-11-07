@@ -1,5 +1,18 @@
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
+from datetime import date
+
+
+def _format_date_val(d) -> str:
+    if isinstance(d, date):
+        return d.strftime('%d/%m/%Y')
+    return str(d or 'לא זוהה')
+
+
+def _format_time_val(t) -> str:
+    if hasattr(t, 'strftime'):
+        return t.strftime('%H:%M')
+    return str(t or '')
 
 
 class ExcelExportServiceTypeA:
@@ -32,12 +45,12 @@ class ExcelExportServiceTypeA:
 
         for row in report.rows:
             ws.append([
-                getattr(row, 'date', 'לא זוהה'),
+                _format_date_val(getattr(row, 'date', 'לא זוהה')),
                 getattr(row, 'day_of_week', 'לא זוהה'),
                 getattr(row, 'location', 'לא זוהה'),
-                getattr(row, 'entry_time', ''),
-                getattr(row, 'exit_time', ''),
-                getattr(row, 'break_time', ''),
+                _format_time_val(getattr(row, 'entry_time', '')),
+                _format_time_val(getattr(row, 'exit_time', '')),
+                _format_time_val(getattr(row, 'break_time', '')),
                 getattr(row, 'total_hours', ''),
                 getattr(row, 'hours_100', '0.00'),
                 getattr(row, 'hours_125', '0.00'),
@@ -87,11 +100,11 @@ class ExcelExportServiceTypeB:
 
         for row in report.rows:
             ws.append([
-                getattr(row, 'date', 'לא זוהה'),
+                _format_date_val(getattr(row, 'date', 'לא זוהה')),
                 getattr(row, 'day_of_week', 'לא זוהה'),
-                getattr(row, 'entry_time', ''),
-                getattr(row, 'exit_time', ''),
-                getattr(row, 'total_hours', ''),
+                _format_time_val(getattr(row, 'entry_time', '')),
+                _format_time_val(getattr(row, 'exit_time', '')),
+                str(getattr(row, 'total_hours', '')),
                 getattr(row, 'notes', '') or ''
             ])
 

@@ -1,17 +1,23 @@
-# שימוש בתמונת בסיס רשמית של פייתון
-FROM python:3.13-slim
+# Use an official Python base image (3.11 for high compatibility)
+FROM python:3.11-slim
 
-# הגדרת תיקיית העבודה בתוך הקונטיינר
+# Install system dependencies (OCR, Hebrew language pack, Poppler utils)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    tesseract-ocr \
+    tesseract-ocr-heb \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
 WORKDIR /app
 
-# העתקת קבצי התלויות
+# Copy dependency definition and install packages
 COPY requirements.txt .
-
-# התקנת התלויות מתוך קובץ הדרישות
 RUN pip install --no-cache-dir -r requirements.txt
 
-# העתקת שאר קבצי הפרויקט לתוך הקונטיינר
+# Copy application source code
 COPY . .
 
-# פקודת ההפעלה של היישום (יש להתאים לפי סוג הפרויקט, למשל פייתון ישיר או pytest)
-CMD ["python", "app.py"]
+# Default execution command
+CMD ["python", "main.py"]

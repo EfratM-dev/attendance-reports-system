@@ -1,4 +1,5 @@
 import re
+from datetime import date
 
 
 class AttendanceMetadataService:
@@ -59,8 +60,12 @@ class AttendanceMetadataService:
         if rows:
             for row in rows:
                 d = getattr(row, 'date', '')
-                if d and ('/' in d or '.' in d):
-                    d_parts = re.split(r'[\/\.]', d)
+                if isinstance(d, date):
+                    return f"{d.month:02d}/{d.year}"
+
+                d_str = str(d)
+                if d_str and ('/' in d_str or '.' in d_str):
+                    d_parts = re.split(r'[\/\.]', d_str)
                     if len(d_parts) >= 2 and d_parts[1].isdigit():
                         m_num = f"{int(d_parts[1]):02d}"
                         y_num = d_parts[2] if len(d_parts) > 2 else ""

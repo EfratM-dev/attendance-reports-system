@@ -7,7 +7,7 @@ def main():
     print("-" * 50)
 
     # Get file path from user
-    file_path = "inputs/n_r_10_n.pdf"
+    file_path = "inputs/n_r_5_n.pdf"
     if not file_path:
         file_path = "inputs/a_r_25.pdf"
 

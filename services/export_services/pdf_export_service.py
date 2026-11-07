@@ -1,5 +1,6 @@
 import os
 import re
+from datetime import date
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -67,6 +68,20 @@ def _bidi_text(text: str) -> str:
     return "".join(processed)
 
 
+def _format_date_val(d) -> str:
+    """Safely converts date object or string to DD/MM/YYYY format string."""
+    if isinstance(d, date):
+        return d.strftime('%d/%m/%Y')
+    return str(d or 'לא זוהה')
+
+
+def _format_time_val(val) -> str:
+    """Safely converts time object or string to HH:MM format string."""
+    if hasattr(val, 'strftime'):
+        return val.strftime('%H:%M')
+    return str(val or '')
+
+
 class PdfExportServiceTypeA:
     """PDF export service for Type A reports."""
 
@@ -124,12 +139,12 @@ class PdfExportServiceTypeA:
                 str(getattr(row, 'hours_125', '0.00')),
                 str(getattr(row, 'hours_100', '0.00')),
                 str(getattr(row, 'total_hours', '')),
-                str(getattr(row, 'break_time', '')),
-                str(getattr(row, 'exit_time', '')),
-                str(getattr(row, 'entry_time', '')),
+                _format_time_val(getattr(row, 'break_time', '')),
+                _format_time_val(getattr(row, 'exit_time', '')),
+                _format_time_val(getattr(row, 'entry_time', '')),
                 _bidi_text(str(getattr(row, 'location', 'לא זוהה'))),
                 _bidi_text(str(getattr(row, 'day_of_week', 'לא זוהה'))),
-                _bidi_text(str(getattr(row, 'date', 'לא זוהה')))
+                _bidi_text(_format_date_val(getattr(row, 'date', 'לא זוהה')))
             ])
 
         col_widths = [45, 45, 45, 45, 45, 45, 45, 45, 55, 45, 55]
@@ -252,10 +267,10 @@ class PdfExportServiceTypeB:
             table_data.append([
                 _bidi_text(str(getattr(row, 'notes', '') or '')),
                 str(getattr(row, 'total_hours', '')),
-                str(getattr(row, 'exit_time', '')),
-                str(getattr(row, 'entry_time', '')),
+                _format_time_val(getattr(row, 'exit_time', '')),
+                _format_time_val(getattr(row, 'entry_time', '')),
                 _bidi_text(str(getattr(row, 'day_of_week', 'לא זוהה'))),
-                _bidi_text(str(getattr(row, 'date', 'לא זוהה')))
+                _bidi_text(_format_date_val(getattr(row, 'date', 'לא זוהה')))
             ])
 
         col_widths = [150, 80, 80, 80, 80, 80]

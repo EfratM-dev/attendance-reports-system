@@ -3,6 +3,9 @@ __pycache__
 *.pyo
 *.pyd
 .git
+.gitignore
 .venv
 venv/
 tests/
+outputs/*
+!outputs/.gitkeep
