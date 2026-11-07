@@ -68,3 +68,74 @@ The project adopts clear design patterns to ensure decoupling and extensibility:
 ```bash
 sudo apt-get update
 sudo apt-get install -y tesseract-ocr tesseract-ocr-heb poppler-utils
+
+```
+
+#### macOS:
+```bash
+brew install tesseract tesseract-lang poppler
+```
+
+#### Windows:
+- Install Tesseract-OCR and add it to system `PATH`.
+- Download Poppler binaries and set environment path.
+
+### Python Environment Setup
+```bash
+# Clone the repository
+git clone <repository_url>
+cd attendance-report-generator
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+---
+
+## Usage
+
+Run the main CLI application:
+```bash
+python main.py
+```
+
+### Execution Flow:
+1. Enter the path to the input PDF file (e.g., `inputs/n_r_10_n.pdf`).
+2. Select desired output format (`pdf` or `excel`).
+3. The processed output file will be generated in the `outputs/` directory (e.g., `outputs/n_r_10_n_output.pdf`).
+
+---
+
+## Running Tests
+
+Execute pytest suite covering classifier, metadata extraction, invariants, parsers, pipeline flow, and summaries:
+```bash
+pytest
+```
+
+---
+
+## Docker Support
+
+### Build Image
+```bash
+docker build -t attendance-report-generator .
+```
+
+### Run Container
+```bash
+docker run --rm \
+  -v "$(pwd)/inputs:/app/inputs" \
+  -v "$(pwd)/outputs:/app/outputs" \
+  attendance-report-generator
+```
+
+### Run Tests in Container
+```bash
+docker run --rm attendance-report-generator pytest
+```
+
